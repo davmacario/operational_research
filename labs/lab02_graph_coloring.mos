@@ -4,8 +4,51 @@ uses "mmxprs"; !gain access to the Xpress-Optimizer solver
 
 !sample declarations section
 declarations
-	
+  N = 1..20
+
+  ! Parameters
+  p: real
+  randn: real
+  count_existent: integer
+
+  y: array(N,N) of integer              ! Edges i -> j
+
+  ! Variables
+  z: array(N, N) of mpvar   ! Color of node i
+  x: array(N) of mpvar      ! Colors used (1 if used)
 end-declarations
+
+! Initialize probability of edge:
+p := 0.3
+
+setrandseed(315054)
+
+forall(i in N, j in N) do
+	randn := random
+	writeln("Current randn: ", randn)
+
+	! Decide existing edges
+	if randn <= p
+	then
+	xy(i,j) := 1
+	count_existent := count_existent + 1
+	end-if
+
+end-do
+
+! Obj. function
+TotColors := sum(i in N) x(i)
+
+! Constraints
+forall(c in N) sum(j in N) z(j, c) = 1
+forall(c in N) forall(i in N, j in N) z(i, c) + z(j, c) <= (2-y(i, j))
+forall(i in N, c in N) z(i, c) <= x(c)
+
+
+minimize(TotColors)
+
+
+
 
 
 end-model
