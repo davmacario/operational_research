@@ -1,0 +1,11 @@
+!@encoding CP1252
+model MatchingModel
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+!sample declarations section
+declarations
+	
+end-declarations
+
+
+end-model

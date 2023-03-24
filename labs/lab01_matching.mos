@@ -1,0 +1,91 @@
+!@encoding CP1252
+model MatchingModel
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+!sample declarations section
+declarations
+	LeftNodes = 1..16
+	RightNodes = 1..16
+
+	p: real
+	randn: real
+	count_existent: integer
+	total_cardinality: integer
+
+	x_ij: array(LeftNodes, RightNodes) of real
+	! z_ij: array(LeftNodes, RightNodes) of integer
+
+	y_ij: array(LeftNodes, RightNodes) of mpvar
+
+end-declarations
+
+! Initialize probability of edge:
+p := 0.3
+!p := 0.6
+
+! Initialize randomly the parameters (x_ij)
+setrandseed(6)
+
+count_existent := 0
+
+forall(i in LeftNodes, j in RightNodes) do
+	randn := random
+	writeln("Current randn: ", randn)
+
+	! The value of randn is used to decide whether to keep the edge or not
+	! Since it is uniform in [0,1], it will have value below p equal to p
+	if randn <= p
+	then
+	x_ij(i,j) := 10*random
+	count_existent := count_existent + 1
+	! No need for "else edge=0" since 0 is the default value for x
+	end-if
+end-do
+
+writeln("Number of nonzero weights: ", count_existent)
+
+! Print the weight values (very messy):
+!forall (i in LeftNodes, j in RightNodes) do
+!	write(x_ij(i,j), " ")
+!	if j = 16
+!	then writeln("")
+!	end-if
+!end-do
+
+! Define OBJECTIVE FUNCTIONS
+TotCardinality := sum(i in LeftNodes, j in RightNodes) y_ij(i,j)
+TotalWeight := sum(i in LeftNodes, j in RightNodes) x_ij(i,j)*y_ij(i,j)
+
+! Define CONSTRAINTS
+forall(i in LeftNodes) sum(j in RightNodes) y_ij(i,j) <= 1
+forall(j in RightNodes) sum(i in LeftNodes) y_ij(i,j) <= 1
+forall(i in LeftNodes, j in RightNodes) y_ij(i,j) <= x_ij(i,j)
+
+! Initialization of variables
+forall(i in LeftNodes, j in RightNodes) y_ij(i,j) is_binary
+
+! Optimization statement
+!maximize(TotCardinality)
+maximize(TotalWeight)
+
+total_cardinality := 0
+
+writeln("Optimal value: ", getobjval)
+
+forall(i in LeftNodes) do
+	forall(j in RightNodes) do
+		write(getsol(y_ij(i,j)))
+		if getsol(y_ij(i,j)) = 1
+		then total_cardinality := total_cardinality + 1
+		end-if
+	end-do
+	writeln("")
+end-do
+
+fopen('out_lab01.txt', F_OUTPUT+F_APPEND)
+writeln(getobjval,",",total_cardinality)
+fclose(F_OUTPUT+F_APPEND)
+
+writeln("Cardinality: ", total_cardinality)
+
+end-model
