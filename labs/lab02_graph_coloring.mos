@@ -4,7 +4,8 @@ uses "mmxprs"; !gain access to the Xpress-Optimizer solver
 
 !sample declarations section
 declarations
-  N = 1..20
+  N = 1..10
+  N_C = 1..10
 
   ! Parameters
   p: real
@@ -14,41 +15,64 @@ declarations
   y: array(N,N) of integer              ! Edges i -> j
 
   ! Variables
-  z: array(N, N) of mpvar   ! Color of node i
-  x: array(N) of mpvar      ! Colors used (1 if used)
+  z: array(N, N_C) of mpvar   ! Color of node i
+  x: array(N_C) of mpvar      ! Colors used (1 if used)
 end-declarations
 
 ! Initialize probability of edge:
-p := 0.3
+p := 0.6
 
-setrandseed(315054)
+setrandseed(1)
 
 forall(i in N, j in N) do
 	randn := random
-	writeln("Current randn: ", randn)
+	!writeln("Current randn: ", randn)
 
 	! Decide existing edges
-	if randn <= p
+	if randn <= p and i <= j
 	then
-	xy(i,j) := 1
-	count_existent := count_existent + 1
+	  if i < j			! Matrix y is symmetric and haz null diagonal (no recursive edges)
+	  then
+	    y(i,j) := 1
+	    y(j,i) := 1
+	    count_existent := count_existent + 2
+	  end-if
 	end-if
 
 end-do
+
+! Initialize problem variables
+forall(c in N_C) x(c) is_binary
+forall(i in N, c in N_C) z(i,c) is_binary
 
 ! Obj. function
 TotColors := sum(i in N) x(i)
 
 ! Constraints
-forall(c in N) sum(j in N) z(j, c) = 1
-forall(c in N) forall(i in N, j in N) z(i, c) + z(j, c) <= (2-y(i, j))
-forall(i in N, c in N) z(i, c) <= x(c)
-
+forall(j in N) sum(c in N) z(j, c) = 1		! Each node has 1 color
+forall(c in N_C, i in N, j in N) z(i, c) + z(j, c) <= (2-y(i, j))  ! adjacent nodes have different colors
+forall(i in N, c in N_C) x(c) >= z(i, c)	! x_c is the max among each y_jc, fixed c
 
 minimize(TotColors)
 
+writeln("Optimal value (min. number of colors): ", getobjval)
 
+writeln("Edges")
 
+forall(i in N) do
+  forall(j in N) do
+    write(getsol(y(i, j)), " ")
+  end-do
+  write("\n")
+end-do
 
+writeln("Nodes color")
+
+forall(j in N) do
+  forall(c in N_C) do
+    write(getsol(z(j, c)), " ")
+  end-do
+  write("\n")
+end-do
 
 end-model
