@@ -1,0 +1,76 @@
+!@encoding CP1252
+model MatchingModel
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+!sample declarations section
+declarations
+  N = 1..60						! Number of nodes
+
+  ! Parameters
+  p: real
+  randn: real
+  count_existent: integer
+
+  e: array(N,N) of integer              ! Edges i -> j
+  w: array(N) of real 									! Weight of each node
+
+  ! Variables
+  v: array(N) of mpvar									! Node i is 1 if it exists
+  
+end-declarations
+
+! Initialize probability of edge:
+p := 0.2
+
+setrandseed(1)
+
+forall(i in N, j in N) do
+	! Initialize (random) weight of node 'i'
+	w(i) := random
+	
+	randn := random
+
+	! Decide existing edges - randomly
+	if randn <= p and i <= j
+	then
+	  if i < j			! Matrix y is symmetric and has null diagonal (no recursive edges)
+	  then
+	    e(i,j) := 1
+	    e(j,i) := 1
+	    count_existent := count_existent + 2
+	  end-if
+	end-if
+
+end-do
+
+! Initialize problem variables
+forall(i in N) v(i) is_binary
+
+! Obj. function
+MIS_weight := sum(i in N) w(i)*v(i)
+
+! Constraints
+forall(i in N, j in N) v(i) + v(j) <= 2 - e(i,j)		! Enforce condition for maximum independent set
+
+maximize(MIS_weight)
+
+writeln("Optimal value (maximum total weight): ", getobjval)
+
+writeln("Number of nodes in the MIS: ", sum(i in N) getsol(v(i)))
+
+writeln("Weights")
+
+forall(i in N) do
+  forall(j in N) do
+    write(getsol(e(i, j)), " ")
+  end-do
+  write("\n")
+end-do
+
+writeln("Maximum Independent Set")
+
+forall(i in N) do
+	writeln("Vertex ", i, ' - ', getsol(v(i)), " - ", w(i))
+end-do
+ 
+end-model

@@ -4,8 +4,8 @@ uses "mmxprs"; !gain access to the Xpress-Optimizer solver
 
 !sample declarations section
 declarations
-  N = 1..10
-  N_C = 1..10
+  N = 1..20
+  N_C = 1..20
 
   ! Parameters
   p: real
@@ -31,7 +31,7 @@ forall(i in N, j in N) do
 	! Decide existing edges
 	if randn <= p and i <= j
 	then
-	  if i < j			! Matrix y is symmetric and haz null diagonal (no recursive edges)
+	  if i < j			! Matrix y is symmetric and has null diagonal (no recursive edges)
 	  then
 	    y(i,j) := 1
 	    y(j,i) := 1
