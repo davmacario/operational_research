@@ -1,0 +1,69 @@
+!@encoding CP1252
+model ModelName
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+declarations
+	N = 1..8
+	M = 1..80		! Upper bound on the number of needed matrices
+	
+	! Problem Parameters:
+	b: array(N,N) of integer
+	
+	! Problem variables 
+	x: array(M) of mpvar
+	a: array(N,N,M) of mpvar
+	
+end-declarations
+
+! Initialize the parameters
+setrandseed(315054)
+
+forall(i in N, j in N) do
+	b(i,j) := integer(round((10*random)))
+end-do
+
+! Initialize variables
+forall(i in M) x(i) is_binary
+forall(i in N, j in N, k in M) a(i,j,k) is_binary
+
+! Objective function
+K := sum(i in M) x(i)
+
+! Constraints
+forall(j in N, k in M) sum(i in N) a(i,j,k) <= 1
+forall(i in N, k in M) sum(j in N) a(i,j,k) <= 1
+forall(i in N, j in N) sum(k in M) a(i,j,k) = b(i,j)
+forall(i in N, j in N, k in M) x(k) >= a(i,j,k)
+
+! Launch evaluation
+minimize(K)
+
+writeln("Optimal value K: ", getobjval)
+
+!Print all matrices
+
+! B
+forall(i in N) do
+	forall(j in N) do
+		if b(i,j) = 10
+		then
+			write(b(i,j), " ")
+		else
+			write(b(i,j), "  ")
+		end-if
+	end-do
+	write("\n")
+end-do
+
+forall(k in M) do
+	writeln("Matrix ", k)
+	forall(i in N) do
+		forall(j in N) do
+			write(getsol(a(i,j,k)), " ")
+		end-do
+		write("\n")
+	end-do
+	writeln("\n")
+end-do
+
+end-model
